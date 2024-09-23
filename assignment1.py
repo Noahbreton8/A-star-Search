@@ -1,37 +1,35 @@
 import heapq #in standard library
+import copy #in standard library
 import pandas as pd
 
-class Point:
-    def __init__(self, pointType, heuristic):
-        self.parent = (-1, -1)
+class State:
+    def __init__(self, grid, heuristic, curr_location, num_keys = 0, path_cost = 0, path = []):
+        self.path = path + [curr_location]
         self.h = heuristic
-        self.path_cost = float('inf') #start at infinity so first path cost added will be lower
-        self.type = pointType
+        self.path_cost = path_cost
+        self.grid = grid
+        self.location = curr_location
+        self.num_keys = num_keys
 
     def getPriorityValue(self):
         return self.path_cost + self.h
     
-    #possible to use for heapq
+    def __eq__(self, other):
+        return self.location == other.location and self.num_keys == other.num_keys
+    
     def __lt__(self, other):
+        # Uncomment if we want to order by heuristic (distance to goal) when they're tied
+        # if self.getPriorityValue() == other.getPriorityValue():
+        #     return self.h < other.h
         return self.getPriorityValue() < other.getPriorityValue()
     
     #for debugging purposes
     def __str__(self):
-        return f"My heuristic is {self.h}, my path cost is {self.path_cost}, my type is {self.type}, my parent is {self.parent}"
-
+        return f"My heuristic is {self.h}, my path cost is {self.path_cost}, my path is {self.path}"
+    
 #Returns the grid from the csv file as a 2D array
 def readFile(filepath):
     return pd.read_csv(filepath, header=None).values
-
-#Going to use the manhattan distance as the heuristic since we cannot move diagonally
-def addHeuristic(grid, goal):
-    for row in range(len(grid)):
-        for col in range(len(grid[row])):
-            heuristicDistance = abs(row - goal[0]) + abs(col - goal[1])
-            pointType = grid[row][col]
-            grid[row][col] = Point(pointType, heuristicDistance)
-
-    return grid
 
 def findStartAndGoal(grid):
     for row in range(len(grid)):
@@ -43,22 +41,31 @@ def findStartAndGoal(grid):
 
     return start, goal
 
-def getNeighbours(grid, currPosition):
+def getHeuristic(curr_position, goal):
+    return abs(curr_position[0] - goal[0]) + abs(curr_position[1] - goal[1])
+
+def valid_point(point, row_length, col_length):
+    if point[0] < 0 or point[1] < 0 or point[0] >= row_length or point[1] >= col_length:
+        return False
+    return True
+
+def getNeighbours(grid, curr_location, has_key):
     directions = [(1,0), (0,1), (0,-1), (-1, 0)]
 
+    neighbours = []
+
     for direction in directions:
-        #get valid direction
-        #check if in bounds
-        #check for doors and how many keys it has
-        #maybe pass the number of keys into the function
-        pass
+        new_point = tuple(a + b for a, b in zip(direction, curr_location))
+        if valid_point(new_point, len(grid), len(grid[0])) and (grid[new_point[0]][new_point[1]] != 'D' or has_key):
+            neighbours.append(new_point)
+    
+    return neighbours
 
 
 # The pathfinding function must implement A* search to find the goal state
 def pathfinding(filepath):
-    grid = readFile(filepath)
-    start, goal = findStartAndGoal(grid)
-    grid = addHeuristic(grid, goal)
+    start_grid = readFile(filepath)
+    start, goal = findStartAndGoal(start_grid)
 
     # optimal_path is a list of coordinate of squares visited (in order)
     optimal_path = []
@@ -67,33 +74,63 @@ def pathfinding(filepath):
     # num_states_explored is the number of states explored during A* search
     num_states_explored = 0
 
+    start_heuristic = getHeuristic(start, goal)
+    start_state = State(start_grid, start_heuristic, start)
+
     #basic graph search from lecture, change it to use heuristics and other
-    frontier = [start]
-    explored = []
+    frontier = [start_state]
+    explored = set() #for easy lookup
 
     while True:
         if frontier == []:
-            return -1, -1, -1
+            #there should be a solution
+            return False
         
-        #use heapq
+        #use heapq to pop off best priority
+        #leaf = State object
         leaf = heapq.heappop(frontier)
+        num_states_explored += 1
 
-        if leaf == goal:
+        if (leaf.location) == goal:
+            optimal_path_cost = leaf.path_cost
+            optimal_path = leaf.path
             break
 
-        explored.append(leaf)
-        for node in getNeighbours(grid, leaf):
+        explored.add(leaf.location + (leaf.num_keys, ))
 
-            curr_path_cost = leaf.path_cost + 1 #weight between two nodes will always be one
-            if (node not in frontier and node not in explored) or (node in frontier and curr_path_cost < node.path_cost):
-                node.parent = leaf
-                node.path_cost = curr_path_cost
+        curr_grid = leaf.grid
 
-                #this part is not complete yet, just an idea
-                #use heapq
-                priority_value = grid[node[0]][node[1]].getPriorityValue()
-                heapq.heappush(frontier, (priority_value, node[0], node[1]))
+        for node in getNeighbours(leaf.grid, leaf.location, leaf.num_keys > 0):
+            
+            new_grid = copy.deepcopy(curr_grid)
+            new_grid[node[0]][node[1]] = 'O'
+
+            new_heuristic = getHeuristic(node, goal)
+            
+            curr_keys = leaf.num_keys
+            if curr_grid[node[0]][node[1]] == 'K':
+                curr_keys += 1
+            elif curr_grid[node[0]][node[1]] == 'D':
+                curr_keys -= 1
+            
+            new_path_cost = leaf.path_cost + 1 #weight between two nodes will always be one
+            
+            new_state = State(new_grid, new_heuristic, node, curr_keys, new_path_cost, leaf.path)
+
+            same_state = False
+            for state in frontier:
+                if new_state == state and new_path_cost < state.path_cost:
+                    same_state = True
+                    del new_state
+                    new_state = state
+                    #Since the path we're taking right now is best update the path cost and path
+                    new_state.path_cost = new_path_cost 
+                    new_state.path = leaf.path + [node]
+                    break
+
+            if same_state or (new_state not in frontier and node + (curr_keys, ) not in explored):
+                heapq.heappush(frontier, new_state)
 
     return optimal_path, optimal_path_cost, num_states_explored
 
-pathfinding('Examples/Example0/grid.csv')
+print(pathfinding('Examples/Example0/grid.csv'))
