@@ -26,7 +26,7 @@ class State:
     #for debugging purposes
     def __str__(self):
         return f"My heuristic is {self.h}, my path cost is {self.path_cost}, my path is {self.path}"
-    
+
 #Returns the grid from the csv file as a 2D array
 def readFile(filepath):
     return pd.read_csv(filepath, header=None).values
@@ -133,4 +133,4 @@ def pathfinding(filepath):
 
     return optimal_path, optimal_path_cost, num_states_explored
 
-print(pathfinding('Examples/Example0/grid.csv'))
+print(pathfinding('Examples/Question4/grid.csv'))

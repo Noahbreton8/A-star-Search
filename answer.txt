@@ -1,0 +1,87 @@
+Noah Breton 101232464
+Marco Toito 101233884
+Nicolas Hawrysh 101151961
+
+1. 
+We have implemented a model based agent, within the state we update the current grid and the number of keys. 
+The grid is updated when keys are collected, doors are opened and current location is changed.
+
+2. 
+    a.  fully obersvable 
+        needs to be fully obersvable to calculate the heusristic based on the goal state
+
+    b.  single agent
+        there is only one pathfinder in the grid
+
+    c.  deterministic 
+        Only agents actions affect the state, the next state is determined by the current state + pathfinder action
+
+    d.  sequential 
+        The current action of the pathfinder affects the future states
+
+    e.  static
+        The environment is not changing while the agent is deciding the next action
+
+    f.  discrete
+        there are only a max of 4 action in a state, there is no time constraint, 
+
+    g.  known
+        the agent knows how to move (traverse an edge)
+
+3.  
+We used Manhatten distance for our A* search
+h = abs(current_x - goal_x) + abs(current_y - goal_y)
+
+To show our heurisitic is consistent:
+
+i. h(n) <= cost(n,n') + h(n')
+
+    Consistency Proof:
+    Consider a node n and successor n' 
+    h(n) = abs(n_x - goal_x) + abs(n_y - goal_y)
+    h(n') = abs(n'_x - goal_x) + abs(n'_y - goal_y)
+    h(n) - h(n') = (abs(n_x - goal_x) + abs(n_y - goal_y)) - (abs(n'_x - goal_x) + abs(n'_y - goal_y))
+                <= abs(n_x - n'_x) + abs(n_y - n'_y) 
+                <= distance(n, n')
+                <= cost(n,n')
+            h(n) <= cost(n,n') + h(n')
+
+    aside
+        abs(n_x - goal_x) - abs(n_x' - goal_x) = abs(n_x - n'_x)
+        this shows that when calcuating the vector in the x direction, the difference between n'_x to goal and n_x to the goal is the same as n to n'
+        this case also applies to the y vector 
+
+ii. h(goal) = 0
+
+    h(goal) = abs(goal_x - goal_x) + abs(goal_y - goal_y) = 0
+
+4. 
+3x5 rectangle 
+DRAW IN GOOGLE DOCS
+
+Optimal (A*) solution 
+([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 4, 5)
+
+Uniform Cost Search:
+([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 4, 9)
+
+5. 
+check photos
+DRAW IN GOOGLE DOCS
+
+Optimal(A*) solution:
+([(0, 4), (0, 5), (1, 5), (2, 5), (2, 4), (2, 3), (2, 2)], 6, 10)
+
+Greedy solution:
+([(0, 4), (0, 3), (0, 2), (0, 1), (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)], 8, 9)
+
+6. 
+Since we are using Manhatten distance as our heuristic, keys and doors are not considered, 
+we only store the distance from the current state to the goal state.
+The Q3 Consistent heurisitic proof is still valid as the new modification has no effect on the formula
+h(n) <= cost(n,n') + h(n') or h(goal) = 0
+
+Group assessment:
+1. Each group member made significant contributions
+2. Each group member made equal contributions
+3. Code and questions were written in a group setting, with all group members present
